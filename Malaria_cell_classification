@@ -1,0 +1,80 @@
+""" 
+The datasets were obtained from kaggle.com
+Malaria_cell_classification, 
+27,986 samples of malaria cells trained using ConvNet
+to identified Parasitized cell from Uninfected ones 
+
+"""
+
+
+#import libraries
+
+import numpy as np
+import pandas as pd 
+import os 
+import random 
+from keras.models import Sequential 
+from keras.layers import Dense, Conv2D, MaxPooling2D, Flatten, Dropout
+from keras.preprocessing.image import ImageDataGenerator
+
+#check directories
+print(os.listdir('/Users/Dir/Input/Malaria_Cell_Images /'))
+
+#specify path 
+
+train_path = "/Users/dir/Input/Data/Malaria_Cell_Images /" #path for train set 
+valid_path = "/Users/dir/Input/Data/Validation/" #path for validation 
+
+#validation 
+list_cell = os.listdir(train_path)
+for i in list_cell: 
+    list_cell = os.listdir(train_path + i)
+    no = int(round(0.2 * len(list_cell)))
+    valid = random.sample(list_cell, no)
+    os.mkdir(valid_path+i)
+    for k in valid:
+        shutil.move(train_path+i+'/'+ k, valid_path+i)
+        
+#ConvNet Architecture 
+model=Sequential()
+model.add(Conv2D(32,kernel_size=(3,3),input_shape=(128,128,3),activation='relu'))
+model.add(Conv2D(32,kernel_size=3,activation='relu'))
+model.add(MaxPooling2D(pool_size=(2,2)))
+
+model.add(Conv2D(64,kernel_size=(3,3),activation='relu'))
+model.add(Conv2D(64,kernel_size=(3,3),activation='relu'))
+
+model.add(MaxPooling2D(pool_size=(2,2)))
+
+model.add(Conv2D(128,kernel_size=(3,3),activation='relu'))
+model.add(Conv2D(128,kernel_size=(3,3),activation='relu'))
+model.add(MaxPooling2D(pool_size=(2,2)))
+
+model.add(Flatten())
+model.add(Dropout(0.5))
+model.add(Dense(512,activation='relu'))
+model.add(Dense(1,activation='sigmoid'))
+model.summary()
+
+#compile & Fit
+model.compile(optimizer='adam',loss='binary_crossentropy',metrics=['accuracy'])
+train_datagen=ImageDataGenerator(rescale=1./255,validation_split=0.2)
+
+train_generator=train_datagen.flow_from_directory(train_path,
+                                               target_size=(128,128),
+                                               batch_size=32,
+                                               class_mode='binary',
+                                               subset='training'
+                                               )
+
+validation_generator=train_datagen.flow_from_directory(valid_path,
+                                               target_size=(128,128),
+                                               batch_size=32,
+                                               class_mode='binary',
+                                               subset='validation'
+                                               )
+history=model.fit_generator(train_generator,
+                           steps_per_epoch=345,
+                           epochs=5,
+                           validation_data=validation_generator,
+                           validation_steps=86)                                         
